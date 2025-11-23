@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKBio CV to ZKBio Time Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            top: -100px;
+            right: -100px;
+            animation: float 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            bottom: -50px;
+            left: -50px;
+            animation: float 8s ease-in-out infinite reverse;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+            max-width: 650px;
+            width: 100%;
+            padding: 48px;
+            position: relative;
+            z-index: 1;
+            margin: 20px auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .logo-icon {
+            font-size: 36px;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .flow-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 24px 0;
+            padding: 16px;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8f0ff 100%);
+            border-radius: 12px;
+        }
+
+        .flow-step {
+            padding: 8px 16px;
+            background: white;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .flow-arrow {
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #c7d2fe;
+            border-radius: 16px;
+            padding: 48px 32px;
+            text-align: center;
+            background: linear-gradient(135deg, #fafbff 0%, #f8f9ff 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f5f7ff 0%, #f0f2ff 100%);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #e8ebff 0%, #e0e5ff 100%);
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+        }
+
+        .upload-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-text {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .upload-hint {
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 12px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            max-height: 240px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            display: none;
+        }
+
+        .log.visible {
+            display: block;
+        }
+
+        .log-entry {
+            margin: 6px 0;
+            padding: 4px 0;
+        }
+
+        .log-process {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .log-error {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .log-success {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .file-info {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+            border: 1px solid #86efac;
+        }
+
+        .file-info.visible {
+            display: block;
+        }
+
+        .file-info-text {
+            color: #065f46;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 32px 24px;
+                margin: 10px auto;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .flow-indicator {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Scrollbar styling */
+        .log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+
+        .log::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .log::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🔄</div>
+            </div>
+            <h1>ZKBio CV → ZKBio Time</h1>
+            <p class="subtitle">Transform your attendance data seamlessly</p>
+        </div>
+
+        <div class="flow-indicator">
+            <div class="flow-step">ZKBio CV</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">Convert</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">ZKBio Time</div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📂</div>
+            <div class="upload-text">Drop your file here or click to browse</div>
+            <div class="upload-hint">Supports .xls and .xlsx formats<br>We'll handle the rest!</div>
+            <input type="file" id="fileInput" accept=".xls,.xlsx">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-info-text" id="fileInfoText"></div>
+        </div>
+
+        <button class="btn" id="convertBtn" disabled>✨ Convert to ZKBio Time Format</button>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const logDiv = document.getElementById('log');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileInfoText = document.getElementById('fileInfoText');
+
+        let uploadedFile = null;
+        let workbookData = null;
+
+        // Log functions
+        function addLog(message, type = 'process') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const prefix = type === 'error' ? '[!]' : '[~]';
+            entry.textContent = `${prefix} ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            logDiv.classList.add('visible');
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Handle file upload
+        function handleFile(file) {
+            clearLog();
+            
+            if (!file.name.match(/\.(xls|xlsx)$/i)) {
+                addLog('Invalid file type. Please upload .xls or .xlsx file', 'error');
+                return;
+            }
+
+            uploadedFile = file;
+            fileInfoText.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            fileInfo.classList.add('visible');
+            
+            addLog(`Reading file: ${file.name}`);
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbookData = XLSX.read(data, { type: 'array' });
+                    
+                    const firstSheet = workbookData.Sheets[workbookData.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    addLog(`Found ${jsonData.length - 2} data rows`);
+                    convertBtn.disabled = false;
+                    addLog('Ready to convert', 'success');
+                } catch (error) {
+                    addLog(`Error reading file: ${error.message}`, 'error');
+                    convertBtn.disabled = true;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Column finder
+        function findColumn(headers, possibleNames) {
+            for (let name of possibleNames) {
+                const index = headers.indexOf(name);
+                if (index !== -1) return index;
+            }
+            return -1;
+        }
+
+        // Convert button click
+        convertBtn.addEventListener('click', () => {
+            if (!workbookData) {
+                addLog('No file loaded', 'error');
+                return;
+            }
+
+            try {
+                addLog('Starting conversion...');
+
+                const firstSheet = workbookData.Sheets[workbookData.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                // Skip first row (title), second row is header
+                const headers = rawData[1];
+                const dataRows = rawData.slice(2);
+
+                addLog('Mapping columns...');
+
+                // Find columns
+                const personnelCol = findColumn(headers, ['Personnel ID', 'PersonnelID', 'personnel_id', 'Employee ID', 'EmployeeID']);
+                const timeCol = findColumn(headers, ['Attendance time', 'Attendance Time', 'AttendanceTime', 'attendance_time', 'Time']);
+                const stateCol = findColumn(headers, ['Attendance State', 'AttendanceState', 'attendance_state', 'State', 'Status']);
+
+                if (personnelCol === -1 || timeCol === -1) {
+                    addLog('Required columns not found', 'error');
+                    addLog(`Available columns: ${headers.join(', ')}`, 'error');
+                    return;
+                }
+
+                // Convert data
+                const outputData = [['Employee ID', 'Punch Time', 'Punch State', 'Work Code', 'Apply Reason']];
+
+                let convertedCount = 0;
+                for (let row of dataRows) {
+                    const employeeId = row[personnelCol];
+                    const attendanceTime = row[timeCol];
+                    const attendanceState = stateCol !== -1 ? row[stateCol] : null;
+
+                    // Skip empty rows
+                    if (!employeeId || employeeId === headers[personnelCol]) continue;
+
+                    // Format time
+                    let punchTime = attendanceTime;
+                    if (typeof attendanceTime === 'number') {
+                        const date = XLSX.SSF.parse_date_code(attendanceTime);
+                        punchTime = `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')} ${String(date.H).padStart(2, '0')}:${String(date.M).padStart(2, '0')}:${String(date.S).padStart(2, '0')}`;
+                    }
+
+                    const punchState = attendanceState || 'Check In';
+
+                    // Use null instead of empty string for Work Code and Apply Reason
+                    outputData.push([employeeId, punchTime, punchState, null, null]);
+                    convertedCount++;
+                }
+
+                addLog(`Converted ${convertedCount} records`);
+
+                // Create new workbook
+                const newWorkbook = XLSX.utils.book_new();
+                const newWorksheet = XLSX.utils.aoa_to_sheet(outputData);
+                
+                // Set column properties to handle empty cells properly
+                const range = XLSX.utils.decode_range(newWorksheet['!ref']);
+                for (let R = 1; R <= range.e.r; ++R) {
+                    // Work Code column (D)
+                    const cellD = XLSX.utils.encode_cell({ r: R, c: 3 });
+                    if (!newWorksheet[cellD] || newWorksheet[cellD].v === null) {
+                        delete newWorksheet[cellD];
+                    }
+                    // Apply Reason column (E)
+                    const cellE = XLSX.utils.encode_cell({ r: R, c: 4 });
+                    if (!newWorksheet[cellE] || newWorksheet[cellE].v === null) {
+                        delete newWorksheet[cellE];
+                    }
+                }
+                
+                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Attendance');
+
+                // Prepare filename
+                const baseFileName = uploadedFile.name.replace(/\.(xls|xlsx)$/i, '');
+                const fileName = `${baseFileName}_converted.xlsx`;
+
+                // Download as XLSX
+                XLSX.writeFile(newWorkbook, fileName);
+
+                addLog(`File saved: ${fileName}`, 'success');
+                addLog('Conversion completed successfully!', 'success');
+
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
